@@ -34,6 +34,7 @@ public class BitbucketBuildTrigger extends Trigger<AbstractProject<?, ?>> {
     private final String credentialsId;
     private final String username;
     private final String password;
+    private final boolean usingOAuth;
     private final String repositoryOwner;
     private final String repositoryName;
     private final String branchesFilter;
@@ -56,6 +57,7 @@ public class BitbucketBuildTrigger extends Trigger<AbstractProject<?, ?>> {
             String credentialsId,
             String username,
             String password,
+            boolean usingOAuth,
             String repositoryOwner,
             String repositoryName,
             String branchesFilter,
@@ -72,6 +74,7 @@ public class BitbucketBuildTrigger extends Trigger<AbstractProject<?, ?>> {
         this.credentialsId = credentialsId;
         this.username = username;
         this.password = password;
+        this.usingOAuth = usingOAuth;
         this.repositoryOwner = repositoryOwner;
         this.repositoryName = repositoryName;
         this.branchesFilter = branchesFilter;
@@ -81,6 +84,40 @@ public class BitbucketBuildTrigger extends Trigger<AbstractProject<?, ?>> {
         this.ciSkipPhrases = ciSkipPhrases;
         this.checkDestinationCommit = checkDestinationCommit;
         this.approveIfSuccess = approveIfSuccess;
+    }
+    
+    public BitbucketBuildTrigger(
+            String projectPath,
+            String cron,
+            String credentialsId,
+            String username,
+            String password,
+            String repositoryOwner,
+            String repositoryName,
+            String branchesFilter,
+            boolean branchesFilterBySCMIncludes,
+            String ciKey,
+            String ciName,
+            String ciSkipPhrases,
+            boolean checkDestinationCommit,
+            boolean approveIfSuccess
+            ) throws ANTLRException {
+        this(
+            projectPath, 
+            cron, 
+            credentialsId, 
+            username, password, 
+            false, 
+            repositoryOwner, 
+            repositoryName,
+            branchesFilter, 
+            branchesFilterBySCMIncludes, 
+            ciKey, 
+            ciName, 
+            ciSkipPhrases, 
+            checkDestinationCommit, 
+            approveIfSuccess
+        );
     }
 
     public String getProjectPath() {
@@ -101,6 +138,10 @@ public class BitbucketBuildTrigger extends Trigger<AbstractProject<?, ?>> {
 
     public String getPassword() {
         return password;
+    }
+    
+    public boolean usingOAuth() {
+      return usingOAuth;
     }
 
     public String getRepositoryOwner() {

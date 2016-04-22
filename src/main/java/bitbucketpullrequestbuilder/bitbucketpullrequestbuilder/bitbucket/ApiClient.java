@@ -34,7 +34,7 @@ public class ApiClient {
     private static final String COMPUTED_KEY_FORMAT = "%s-%s";    
     private String owner;
     private String repositoryName;
-    private Credentials credentials;
+    protected Credentials credentials;
     private String key;
     private String name;
     private HttpClientFactory factory;
@@ -65,7 +65,7 @@ public class ApiClient {
             
             return client;
         }
-    }
+    }        
     
     public <T extends HttpClientFactory> ApiClient(
         String username, String password, 
@@ -80,7 +80,7 @@ public class ApiClient {
         this.name = name;        
         this.factory = httpFactory != null ? httpFactory : HttpClientFactory.INSTANCE;
     }
-
+    
     public List<Pullrequest> getPullRequests() {
         try {
             return parse(get(v2("/pullrequests/")), Pullrequest.Response.class).getPullrequests();
@@ -231,23 +231,29 @@ public class ApiClient {
         send(req);
     }
 
+    protected String onSend(HttpMethodBase req) {
+      HttpClient client = getHttpClient();
+      client.getState().setCredentials(AuthScope.ANY, credentials);
+      client.getParams().setAuthenticationPreemptive(true);
+      try {
+          client.executeMethod(req);
+          return req.getResponseBodyAsString();
+      } catch (HttpException e) {
+          logger.log(Level.WARNING, "Failed to send request.", e);
+          e.printStackTrace();
+      } catch (IOException e) {
+          logger.log(Level.WARNING, "Failed to send request.", e);
+          e.printStackTrace();
+      }
+      return null;
+    }
+    
     private String send(HttpMethodBase req) {
-        HttpClient client = getHttpClient();
-        client.getState().setCredentials(AuthScope.ANY, credentials);
-        client.getParams().setAuthenticationPreemptive(true);
         try {
-            client.executeMethod(req);
-            return req.getResponseBodyAsString();
-        } catch (HttpException e) {
-            logger.log(Level.WARNING, "Failed to send request.", e);
-            e.printStackTrace();
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Failed to send request.", e);
-            e.printStackTrace();
+          return onSend(req);
         } finally {
           req.releaseConnection();
         }
-        return null;
     }
 
     private <R> R parse(String response, Class<R> cls) throws IOException {

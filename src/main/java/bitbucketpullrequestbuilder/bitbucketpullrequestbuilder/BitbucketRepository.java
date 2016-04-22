@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.ApiClient;
 import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.BuildState;
 import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.Pullrequest;
+import bitbucketpullrequestbuilder.bitbucketpullrequestbuilder.bitbucket.ApiClientOAuth;
 
 import java.util.LinkedList;
 import java.util.logging.Level;
@@ -62,18 +63,31 @@ public class BitbucketRepository {
         this.init(client, null);
     }
     
-    public <T extends ApiClient.HttpClientFactory> void init(ApiClient client, T httpFactory) {
-        this.trigger = this.builder.getTrigger();
+    public void init(ApiClientOAuth client) {
+        this.init(client, null);
+    }
+    
+    <T extends ApiClient.HttpClientFactory> ApiClient makeAPIClient(T httpFactory) {
+        String username = trigger.getUsername();
+        String password = trigger.getPassword();  
         
-        if (client == null) {                      
-            String username = trigger.getUsername();
-            String password = trigger.getPassword();            
-            StandardUsernamePasswordCredentials credentials = getCredentials(trigger.getCredentialsId());
-            if (credentials != null) {
-                username = credentials.getUsername();
-                password = credentials.getPassword().getPlainText();
-            }            
-            this.client = new ApiClient(
+        StandardUsernamePasswordCredentials credentials = getCredentials(trigger.getCredentialsId());        
+        if (credentials != null) {
+            username = credentials.getUsername();
+            password = credentials.getPassword().getPlainText();
+        }    
+        
+        if (trigger.usingOAuth())
+            return new ApiClientOAuth(
+                username,
+                password,
+                trigger.getRepositoryOwner(),
+                trigger.getRepositoryName(),
+                trigger.getCiKey(),
+                trigger.getCiName()
+            );            
+        else
+            return new ApiClient(
                 username,
                 password,
                 trigger.getRepositoryOwner(),
@@ -82,10 +96,13 @@ public class BitbucketRepository {
                 trigger.getCiName(),
                 httpFactory
             );
-            
-        } else this.client = client;
     }
-
+    
+    public <T extends ApiClient.HttpClientFactory> void init(ApiClient client, T httpFactory) {
+        this.trigger = this.builder.getTrigger();        
+        this.client = (client != null) ? client : makeAPIClient(httpFactory);
+    }
+    
     public Collection<Pullrequest> getTargetPullRequests() {
         logger.info("Fetch PullRequests.");
         List<Pullrequest> pullRequests = client.getPullRequests();

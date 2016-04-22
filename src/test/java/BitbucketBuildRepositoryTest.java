@@ -29,7 +29,6 @@ import org.junit.Assert;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import jenkins.model.Jenkins;
-import org.jvnet.hudson.test.WithoutJenkins;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.httpclient.Credentials;
@@ -173,20 +172,11 @@ public class BitbucketBuildRepositoryTest {
     try { repo.postPullRequestApproval("prId"); } catch(Error e) { assertTrue(e instanceof AssertionError); }                
   }
   
-  class MD5HasherFunction implements Function<String, String> {       
-    protected final MessageDigest MD5;
-    public MD5HasherFunction(MessageDigest md5) { this.MD5 = md5; }
+  class HasherFunction implements Function<String, String> {       
+    protected final MessageDigest Digest;
+    public HasherFunction(MessageDigest digest) { this.Digest = digest; }
     public String apply(String f) {
-      try { return new String(Hex.encodeHex(MD5.digest(f.getBytes("UTF-8")))); } catch(UnsupportedEncodingException e) { }
-      return null;
-    }
-  }
-  
-  class SHA1HasherFunction implements Function<String, String> {       
-    protected final MessageDigest SHA1;
-    public SHA1HasherFunction(MessageDigest sha1) { this.SHA1 = sha1; }
-    public String apply(String f) {
-      try { return new String(Hex.encodeHex(SHA1.digest(f.getBytes("UTF-8")))); } catch(UnsupportedEncodingException e) { }
+      try { return new String(Hex.encodeHex(Digest.digest(f.getBytes("UTF-8")))); } catch(UnsupportedEncodingException e) { }
       return null;
     }
   }
@@ -217,7 +207,7 @@ public class BitbucketBuildRepositoryTest {
       "Good project, careated at " + (new java.util.Date()).toString(),      
     };   
     
-    Collection<String> hashedProjectIdsCollection = Collections2.transform(Arrays.asList(projectIds), new MD5HasherFunction(MD5));
+    Collection<String> hashedProjectIdsCollection = Collections2.transform(Arrays.asList(projectIds), new HasherFunction(MD5));
     String[] hashedPojectIds = hashedProjectIdsCollection.toArray(new String[hashedProjectIdsCollection.size()]);
     
     for(String projectId : hashedPojectIds) {
@@ -256,7 +246,7 @@ public class BitbucketBuildRepositoryTest {
     
     BitbucketPullRequestsBuilder builder = EasyMock.createMock(BitbucketPullRequestsBuilder.class); 
     EasyMock.expect(builder.getTrigger()).andReturn(trigger).anyTimes();
-    EasyMock.expect(builder.getProjectId()).andReturn((new MD5HasherFunction(MD5)).apply("projectId")).anyTimes();
+    EasyMock.expect(builder.getProjectId()).andReturn((new HasherFunction(MD5)).apply("projectId")).anyTimes();
     EasyMock.replay(builder);       
     
     BitbucketRepository repo = new BitbucketRepository("", builder);
@@ -265,6 +255,7 @@ public class BitbucketBuildRepositoryTest {
     String buildStatusKey = repo.getClient().buildStatusKey(builder.getProjectId());
     assertTrue(buildStatusKey.length() <= ApiClient.MAX_KEY_SIZE_BB_API);
     assertFalse(buildStatusKey.startsWith("jenkins-"));
-    assertEquals((new SHA1HasherFunction(SHA1)).apply("jenkins-too-long-ci-key" + "-" + builder.getProjectId()), buildStatusKey);
+    assertEquals((new HasherFunction(SHA1)).apply("jenkins-too-long-ci-key" + "-" + builder.getProjectId()), buildStatusKey);
   }
+  
 }

@@ -11,6 +11,9 @@
   <f:entry title="Bitbucket BasicAuth Password" field="password">
     <f:password />
   </f:entry>
+  <f:entry title="using OAuth and interprete credentials like a 'key' and 'secret' fields" field="usingOAuth">
+    <f:checkbox />
+  </f:entry>
   <f:entry title="RepositoryOwner" field="repositoryOwner">
     <f:textbox />
   </f:entry>
